@@ -3,6 +3,7 @@ import express from "express";
 import {
   getAllActivities,
   getActivitiesBySubmodule,
+  getActivitiesByModule, // Add this
   getActivityById,
   createActivity,
   updateActivity,
@@ -50,6 +51,16 @@ router.post(
     res.status(201).json({ activity });
   }),
 );
+
+router.get("/module/:moduleId", async (req, res, next) => {
+  try {
+    const activities = await getActivitiesByModule(req.params.moduleId);
+
+    res.status(200).json(activities);
+  } catch (error) {
+    next(error);
+  }
+});
 
 // PATCH /api/activities/:activityId
 router.patch(

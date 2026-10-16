@@ -11,6 +11,41 @@ export async function getAllActivities() {
   return data;
 }
 
+export async function getActivitiesByModule(moduleId) {
+  if (!moduleId) {
+    const err = new Error("moduleId is required");
+    err.status = 400;
+    throw err;
+  }
+
+  // Step 1: Get all submodules in this module.
+  const { data: submodules, error: submoduleError } = await supabase
+    .from("submodules")
+    .select("id")
+    .eq("module_id", moduleId);
+
+  if (submoduleError) throw submoduleError;
+
+  // No submodules means no activities.
+  if (!submodules || submodules.length === 0) {
+    return [];
+  }
+
+  // Step 2: Extract their IDs.
+  const submoduleIds = submodules.map((submodule) => submodule.id);
+
+  // Step 3: Get activities belonging to any of those submodules.
+  const { data: activities, error: activityError } = await supabase
+    .from("activities")
+    .select("*")
+    .in("submodule_id", submoduleIds)
+    .order("position", { ascending: true });
+
+  if (activityError) throw activityError;
+
+  return activities;
+}
+
 // GET activities belonging to a submodule
 export async function getActivitiesBySubmodule(submoduleId) {
   const { data, error } = await supabase
