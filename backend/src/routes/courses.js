@@ -1,69 +1,63 @@
-import express from 'express';
-import { authenticate } from '../middleware/auth.js';
-import { requireBody, requireFields, validateUUID } from '../middleware/validate.js';
-import * as courseService from '../services/courseService.js';
+import express from "express";
+
+import {
+  getAllCourses,
+  getCourseById,
+  createCourse,
+  updateCourse,
+  deleteCourse,
+} from "../services/courses.js";
 
 const router = express.Router();
 
-router.get('/', authenticate, async (_req, res) => {
-  const courses = await courseService.listCourses();
-  res.json(courses);
-});
+// Helper to forward async errors to Express error handling.
+const asyncHandler = (handler) => (req, res, next) =>
+  Promise.resolve(handler(req, res, next)).catch(next);
 
-router.post('/', authenticate, async (req, res, next) => {
-  try {
-    if (!requireBody(res, req.body)) return;
-    if (!requireFields(res, req.body, ['title'])) return;
-    const course = await courseService.createCourse(req.body);
-    res.status(201).json(course);
-  } catch (err) {
-    next(err);
-  }
-});
+// GET /api/courses
+router.get(
+  "/",
+  asyncHandler(async (req, res) => {
+    const courses = await getAllCourses();
+    res.status(200).json({ courses });
+  }),
+);
 
-router.get('/:id/content', authenticate, async (req, res, next) => {
-  try {
-    if (!validateUUID(res, req.params.id)) return;
-    const content = await courseService.getCourseContent(req.params.id);
-    if (!content) return res.status(404).json({ error: 'Course not found' });
-    res.json(content);
-  } catch (err) {
-    next(err);
-  }
-});
+// GET /api/courses/:courseId
+router.get(
+  "/:courseId",
+  asyncHandler(async (req, res) => {
+    const course = await getCourseById(req.params.courseId);
+    res.status(200).json({ course });
+  }),
+);
 
-router.get('/:id', authenticate, async (req, res, next) => {
-  try {
-    if (!validateUUID(res, req.params.id)) return;
-    const course = await courseService.getCourseById(req.params.id);
-    if (!course) return res.status(404).json({ error: 'Course not found' });
-    res.json(course);
-  } catch (err) {
-    next(err);
-  }
-});
+// POST /api/courses
+router.post(
+  "/",
+  asyncHandler(async (req, res) => {
+    const course = await createCourse(req.body);
+    res.status(201).json({ course });
+  }),
+);
 
-router.put('/:id', authenticate, async (req, res, next) => {
-  try {
-    if (!validateUUID(res, req.params.id)) return;
-    if (!requireBody(res, req.body)) return;
-    const course = await courseService.updateCourse(req.params.id, req.body);
-    if (!course) return res.status(404).json({ error: 'Course not found' });
-    res.json(course);
-  } catch (err) {
-    next(err);
-  }
-});
+// PATCH /api/courses/:courseId
+router.patch(
+  "/:courseId",
+  asyncHandler(async (req, res) => {
+    const course = await updateCourse(req.params.courseId, req.body);
 
-router.delete('/:id', authenticate, async (req, res, next) => {
-  try {
-    if (!validateUUID(res, req.params.id)) return;
-    const deleted = await courseService.deleteCourse(req.params.id);
-    if (!deleted) return res.status(404).json({ error: 'Course not found' });
-    res.status(204).send();
-  } catch (err) {
-    next(err);
-  }
-});
+    res.status(200).json({ course });
+  }),
+);
+
+// DELETE /api/courses/:courseId
+router.delete(
+  "/:courseId",
+  asyncHandler(async (req, res) => {
+    const result = await deleteCourse(req.params.courseId);
+    res.status(200).json(result);
+  }),
+);
 
 export default router;

@@ -1,105 +1,72 @@
-import express from 'express';
-import { authenticate } from '../middleware/auth.js';
-import { requireBody, requireFields, validateUUID } from '../middleware/validate.js';
-import * as moduleService from '../services/moduleService.js';
+import express from "express";
+
+import {
+  getAllModules,
+  getModulesByCourse,
+  getModuleById,
+  createModule,
+  updateModule,
+  deleteModule,
+} from "../services/modules.js";
 
 const router = express.Router();
 
-router.get('/course/:courseId', authenticate, async (req, res, next) => {
-  try {
-    if (!validateUUID(res, req.params.courseId)) return;
-    const modules = await moduleService.listModulesByCourse(req.params.courseId);
-    res.json(modules);
-  } catch (err) {
-    next(err);
-  }
-});
+const asyncHandler = (handler) => (req, res, next) =>
+  Promise.resolve(handler(req, res, next)).catch(next);
 
-router.post('/', authenticate, async (req, res, next) => {
-  try {
-    if (!requireBody(res, req.body)) return;
-    if (!requireFields(res, req.body, ['courseId', 'title'])) return;
-    if (!validateUUID(res, req.body.courseId)) return;
-    const module = await moduleService.createModule(req.body);
-    res.status(201).json(module);
-  } catch (err) {
-    next(err);
-  }
-});
+// GET /api/modules
+router.get(
+  "/",
+  asyncHandler(async (req, res) => {
+    const modules = await getAllModules();
+    res.status(200).json({ modules });
+  }),
+);
 
-router.get('/:id', authenticate, async (req, res, next) => {
-  try {
-    if (!validateUUID(res, req.params.id)) return;
-    const module = await moduleService.getModuleById(req.params.id);
-    if (!module) return res.status(404).json({ error: 'Module not found' });
-    res.json(module);
-  } catch (err) {
-    next(err);
-  }
-});
+// GET /api/modules/course/:courseId
+router.get(
+  "/course/:courseId",
+  asyncHandler(async (req, res) => {
+    const modules = await getModulesByCourse(req.params.courseId);
+    res.status(200).json({ modules });
+  }),
+);
 
-router.put('/:id', authenticate, async (req, res, next) => {
-  try {
-    if (!validateUUID(res, req.params.id)) return;
-    if (!requireBody(res, req.body)) return;
-    const module = await moduleService.updateModule(req.params.id, req.body);
-    if (!module) return res.status(404).json({ error: 'Module not found' });
-    res.json(module);
-  } catch (err) {
-    next(err);
-  }
-});
+// GET /api/modules/:moduleId
+router.get(
+  "/:moduleId",
+  asyncHandler(async (req, res) => {
+    const module = await getModuleById(req.params.moduleId);
+    res.status(200).json({ module });
+  }),
+);
 
-router.delete('/:id', authenticate, async (req, res, next) => {
-  try {
-    if (!validateUUID(res, req.params.id)) return;
-    const deleted = await moduleService.deleteModule(req.params.id);
-    if (!deleted) return res.status(404).json({ error: 'Module not found' });
-    res.status(204).send();
-  } catch (err) {
-    next(err);
-  }
-});
+// POST /api/modules
+router.post(
+  "/",
+  asyncHandler(async (req, res) => {
+    const module = await createModule(req.body);
+    res.status(201).json({ module });
+  }),
+);
 
-router.post('/:moduleId/prerequisites', authenticate, async (req, res, next) => {
-  try {
-    if (!validateUUID(res, req.params.moduleId)) return;
-    if (!requireBody(res, req.body)) return;
-    if (!requireFields(res, req.body, ['prerequisiteModuleId'])) return;
-    if (!validateUUID(res, req.body.prerequisiteModuleId)) return;
-    const prerequisite = await moduleService.addPrerequisite(
-      req.params.moduleId,
-      req.body.prerequisiteModuleId
-    );
-    res.status(201).json(prerequisite);
-  } catch (err) {
-    next(err);
-  }
-});
+// PATCH /api/modules/:moduleId
+router.patch(
+  "/:moduleId",
+  asyncHandler(async (req, res) => {
+    const module = await updateModule(req.params.moduleId, req.body);
 
-router.delete('/:moduleId/prerequisites/:prerequisiteModuleId', authenticate, async (req, res, next) => {
-  try {
-    if (!validateUUID(res, req.params.moduleId)) return;
-    if (!validateUUID(res, req.params.prerequisiteModuleId)) return;
-    const deleted = await moduleService.removePrerequisite(
-      req.params.moduleId,
-      req.params.prerequisiteModuleId
-    );
-    if (!deleted) return res.status(404).json({ error: 'Prerequisite not found' });
-    res.status(204).send();
-  } catch (err) {
-    next(err);
-  }
-});
+    res.status(200).json({ module });
+  }),
+);
 
-router.get('/:moduleId/prerequisites', authenticate, async (req, res, next) => {
-  try {
-    if (!validateUUID(res, req.params.moduleId)) return;
-    const prerequisites = await moduleService.listPrerequisites(req.params.moduleId);
-    res.json(prerequisites);
-  } catch (err) {
-    next(err);
-  }
-});
+// DELETE /api/modules/:moduleId
+router.delete(
+  "/:moduleId",
+  asyncHandler(async (req, res) => {
+    const result = await deleteModule(req.params.moduleId);
+    res.status(200).json(result);
+  }),
+);
 
 export default router;

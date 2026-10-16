@@ -1,53 +1,70 @@
-import express from 'express';
-import { requireBody, requireFields } from '../middleware/validate.js';
-import { authenticate } from '../middleware/auth.js';
-import * as authService from '../services/authService.js';
+import express from "express";
+import { signup, login } from "../services/auth.js";
 
 const router = express.Router();
 
-// Public: sign up with email and password (auto-confirmed, instant login)
-router.post('/signup', async (req, res, next) => {
+// POST /api/auth/signup
+router.post("/signup", async (req, res) => {
   try {
-    if (!requireBody(res, req.body)) return;
-    if (!requireFields(res, req.body, ['email', 'password'])) return;
+    const { name, email, password } = req.body ?? {};
 
-    const user = await authService.signup({
-      email: req.body.email,
-      password: req.body.password,
+    if (
+      typeof email !== "string" ||
+      typeof password !== "string" ||
+      !email.trim() ||
+      password.length < 6
+    ) {
+      return res.status(400).json({
+        error:
+          "A valid email and a password of at least 6 characters are required.",
+      });
+    }
+
+    const result = await signup({
+      name: typeof name === "string" ? name.trim() : "",
+      email: email.trim(),
+      password,
     });
 
-    res.status(201).json({ user });
-  } catch (err) {
-    next(err);
+    return res.status(201).json(result);
+  } catch (error) {
+    console.error("Signup error:", error.message);
+
+    return res.status(400).json({
+      error: error.message || "Signup failed",
+    });
   }
 });
 
-// Public: log in with email and password, returns access token
-router.post('/login', async (req, res, next) => {
+// POST /api/auth/login
+router.post("/login", async (req, res) => {
   try {
-    if (!requireBody(res, req.body)) return;
-    if (!requireFields(res, req.body, ['email', 'password'])) return;
+    const { email, password } = req.body ?? {};
 
-    const { user, session } = await authService.login({
-      email: req.body.email,
-      password: req.body.password,
+    if (
+      typeof email !== "string" ||
+      typeof password !== "string" ||
+      !email.trim() ||
+      !password
+    ) {
+      return res.status(400).json({
+        error: "Email and password are required.",
+      });
+    }
+
+    const result = await login({
+      email: email.trim(),
+      password,
     });
 
-    res.json({ user, session });
-  } catch (err) {
-    next(err);
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error("Login error:", error.message);
+
+    return res.status(401).json({
+      error: error.message || "Login failed",
+    });
   }
-});
-
-// Protected: get the currently authenticated student's profile
-router.get('/me', authenticate, async (_req, res) => {
-  const { id } = req.student;
-  res.json({ id, email: req.student.email });
-});
-
-// Public: log out (client should discard the access token)
-router.post('/logout', async (_req, res) => {
-  res.json({ message: 'Logged out' });
 });
 
 export default router;

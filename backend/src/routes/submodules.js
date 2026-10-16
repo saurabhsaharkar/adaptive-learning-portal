@@ -1,64 +1,75 @@
-import express from 'express';
-import { authenticate } from '../middleware/auth.js';
-import { requireBody, requireFields, validateUUID } from '../middleware/validate.js';
-import * as submoduleService from '../services/submoduleService.js';
+import express from "express";
+
+import {
+  getAllSubmodules,
+  getSubmodulesByModule,
+  getSubmoduleById,
+  createSubmodule,
+  updateSubmodule,
+  deleteSubmodule,
+} from "../services/submodules.js";
 
 const router = express.Router();
 
-router.get('/module/:moduleId', authenticate, async (req, res, next) => {
-  try {
-    if (!validateUUID(res, req.params.moduleId)) return;
-    const submodules = await submoduleService.listSubmodulesByModule(req.params.moduleId);
-    res.json(submodules);
-  } catch (err) {
-    next(err);
-  }
-});
+const asyncHandler = (handler) => (req, res, next) =>
+  Promise.resolve(handler(req, res, next)).catch(next);
 
-router.post('/', authenticate, async (req, res, next) => {
-  try {
-    if (!requireBody(res, req.body)) return;
-    if (!requireFields(res, req.body, ['moduleId', 'title', 'position'])) return;
-    if (!validateUUID(res, req.body.moduleId)) return;
-    const submodule = await submoduleService.createSubmodule(req.body);
-    res.status(201).json(submodule);
-  } catch (err) {
-    next(err);
-  }
-});
+// GET /api/submodules
+router.get(
+  "/",
+  asyncHandler(async (req, res) => {
+    const submodules = await getAllSubmodules();
+    res.status(200).json({ submodules });
+  }),
+);
 
-router.get('/:id', authenticate, async (req, res, next) => {
-  try {
-    if (!validateUUID(res, req.params.id)) return;
-    const submodule = await submoduleService.getSubmoduleById(req.params.id);
-    if (!submodule) return res.status(404).json({ error: 'Submodule not found' });
-    res.json(submodule);
-  } catch (err) {
-    next(err);
-  }
-});
+// GET /api/submodules/module/:moduleId
+router.get(
+  "/module/:moduleId",
+  asyncHandler(async (req, res) => {
+    const submodules = await getSubmodulesByModule(req.params.moduleId);
 
-router.put('/:id', authenticate, async (req, res, next) => {
-  try {
-    if (!validateUUID(res, req.params.id)) return;
-    if (!requireBody(res, req.body)) return;
-    const submodule = await submoduleService.updateSubmodule(req.params.id, req.body);
-    if (!submodule) return res.status(404).json({ error: 'Submodule not found' });
-    res.json(submodule);
-  } catch (err) {
-    next(err);
-  }
-});
+    res.status(200).json({ submodules });
+  }),
+);
 
-router.delete('/:id', authenticate, async (req, res, next) => {
-  try {
-    if (!validateUUID(res, req.params.id)) return;
-    const deleted = await submoduleService.deleteSubmodule(req.params.id);
-    if (!deleted) return res.status(404).json({ error: 'Submodule not found' });
-    res.status(204).send();
-  } catch (err) {
-    next(err);
-  }
-});
+// GET /api/submodules/:submoduleId
+router.get(
+  "/:submoduleId",
+  asyncHandler(async (req, res) => {
+    const submodule = await getSubmoduleById(req.params.submoduleId);
+
+    res.status(200).json({ submodule });
+  }),
+);
+
+// POST /api/submodules
+router.post(
+  "/",
+  asyncHandler(async (req, res) => {
+    const submodule = await createSubmodule(req.body);
+    res.status(201).json({ submodule });
+  }),
+);
+
+// PATCH /api/submodules/:submoduleId
+router.patch(
+  "/:submoduleId",
+  asyncHandler(async (req, res) => {
+    const submodule = await updateSubmodule(req.params.submoduleId, req.body);
+
+    res.status(200).json({ submodule });
+  }),
+);
+
+// DELETE /api/submodules/:submoduleId
+router.delete(
+  "/:submoduleId",
+  asyncHandler(async (req, res) => {
+    const result = await deleteSubmodule(req.params.submoduleId);
+
+    res.status(200).json(result);
+  }),
+);
 
 export default router;
