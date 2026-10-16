@@ -99,7 +99,7 @@ export async function createModule(moduleData) {
 
 // UPDATE a module
 export async function updateModule(moduleId, updates) {
-  const allowedFields = ["title", "description", "position"];
+  const allowedFields = ["title", "description", "position", "status"];
   const cleanUpdates = {};
 
   for (const field of allowedFields) {

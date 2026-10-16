@@ -95,7 +95,7 @@ export async function createActivity(activityData) {
 
 // UPDATE an activity
 export async function updateActivity(activityId, updates) {
-  const allowedFields = ["title", "type", "position"];
+  const allowedFields = ["title", "type", "position", "status"];
   const payload = {};
 
   for (const field of allowedFields) {
