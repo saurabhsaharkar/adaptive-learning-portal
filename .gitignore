@@ -1,0 +1,22 @@
+
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+build/
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Local files
+.DS_Store
+backend/uploads/
+backend/audit-report.json
