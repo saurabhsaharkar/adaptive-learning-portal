@@ -74,10 +74,20 @@ router.post(
   asyncHandler(async (req, res) => {
     const session = await advanceVivaQuestion(req.params.sessionId);
 
-    res.status(200).json({ session });
+    const currentQuestion =
+      session.status === "in_progress"
+        ? await getCurrentVivaQuestion(
+            session.module_id,
+            session.current_question_position,
+          )
+        : null;
+
+    res.status(200).json({
+      session,
+      current_question: currentQuestion,
+    });
   }),
 );
-
 // POST /api/viva-sessions/:sessionId/abandon
 router.post(
   "/:sessionId/abandon",
