@@ -3,8 +3,9 @@ import express from "express";
 import {
   getVivaSessionsByUser,
   getVivaSessionById,
+  getCurrentVivaQuestion,
   createVivaSession,
-  appendVivaMessage,
+  submitVivaAnswer,
   advanceVivaQuestion,
   abandonVivaSession,
 } from "../services/vivaSessions.js";
@@ -30,9 +31,9 @@ router.post(
   asyncHandler(async (req, res) => {
     const { user_id, module_id } = req.body;
 
-    const session = await createVivaSession(user_id, module_id);
+    const result = await createVivaSession(user_id, module_id);
 
-    res.status(201).json({ session });
+    res.status(201).json(result);
   }),
 );
 
@@ -42,20 +43,27 @@ router.get(
   asyncHandler(async (req, res) => {
     const session = await getVivaSessionById(req.params.sessionId);
 
-    res.status(200).json({ session });
+    const currentQuestion = await getCurrentVivaQuestion(
+      session.module_id,
+      session.current_question_position,
+    );
+
+    res.status(200).json({
+      session,
+      current_question: currentQuestion,
+    });
   }),
 );
 
-// POST /api/viva-sessions/:sessionId/messages
+// POST /api/viva-sessions/:sessionId/answers
 router.post(
-  "/:sessionId/messages",
+  "/:sessionId/answers",
   asyncHandler(async (req, res) => {
-    const session = await appendVivaMessage(
-      req.params.sessionId,
-      req.body.message,
-    );
+    const { answer } = req.body;
 
-    res.status(200).json({ session });
+    const result = await submitVivaAnswer(req.params.sessionId, answer);
+
+    res.status(200).json(result);
   }),
 );
 

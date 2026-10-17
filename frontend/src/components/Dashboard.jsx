@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import CourseRoadmap from "./CourseRoadmap";
+import Courses from "./Courses";
 
 const DEFAULT_SETTINGS = {
   name: "Student",
@@ -1044,9 +1044,7 @@ export default function Dashboard() {
         {activePage === "Home" ? (
           renderHome()
         ) : activePage === "Courses" ? (
-          <CourseRoadmap
-            courseId="10000000-0000-4000-8000-000000000001"
-          />
+          <Courses />
         ) : (
           renderOtherPage()
         )}

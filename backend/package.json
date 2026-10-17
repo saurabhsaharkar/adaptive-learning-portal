@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
+    "@google/genai": "^2.30.0",
     "@supabase/supabase-js": "^2.118.0",
     "accepts": "^2.0.0",
     "body-parser": "^2.3.0",

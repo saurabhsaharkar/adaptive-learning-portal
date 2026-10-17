@@ -193,6 +193,7 @@ export default function CourseRoadmap({
   const [activitiesError, setActivitiesError] = useState("");
   const [activitiesReloadKey, setActivitiesReloadKey] = useState(0);
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [prereqs, setPrereqs] = useState(new Map());
 
   useEffect(() => {
     setRoadmapOpen(initialOpen);
@@ -234,6 +235,39 @@ export default function CourseRoadmap({
             (a, b) => Number(a.position ?? 0) - Number(b.position ?? 0)
           )
         );
+
+        // Load prerequisites for every module in parallel so the graph
+        // can be built from real database relationships.
+        const moduleIds = fetchedModules.map((m) => String(m.id));
+        try {
+          const results = await Promise.allSettled(
+            moduleIds.map((moduleId) =>
+              fetch(
+                `${API_BASE_URL}/module-prerequisites/module/${encodeURIComponent(moduleId)}`,
+                { signal: controller.signal }
+              ).then((r) => (r.ok ? r.json() : { prerequisites: [] }))
+            )
+          );
+
+          const prereqMap = new Map();
+          for (const [i, result] of results.entries()) {
+            if (result.status === "fulfilled" && Array.isArray(result.value.prerequisites)) {
+              prereqMap.set(
+                moduleIds[i],
+                result.value.prerequisites.map((p) =>
+                  String(p.prerequisite_module_id ?? p.prerequisite?.id)
+                )
+              );
+            } else {
+              prereqMap.set(moduleIds[i], []);
+            }
+          }
+          setPrereqs(prereqMap);
+        } catch (err) {
+          if (err.name !== "AbortError") {
+            console.error("Prerequisite loading error:", err);
+          }
+        }
       } catch (err) {
         if (err.name !== "AbortError") {
           setError(err.message || "Unable to load modules.");
@@ -309,40 +343,110 @@ export default function CourseRoadmap({
     [modules]
   );
 
-  const nodes = useMemo(
-    () =>
-      orderedModules.map((module, index) => ({
-        id: String(module.id),
-        type: "module",
-        position: {
-          x: 0,
-          y: index * 240,
-        },
-        data: {
-          title: module.title,
-          description: module.description,
-          subtitle: `Level ${index + 1}`,
-          color: ["blue", "cyan", "purple", "green"][index % 4],
-        },
-      })),
+  // Build level-based positions from real prerequisite relationships.
+  const moduleIdSet = useMemo(
+    () => new Set(orderedModules.map((m) => String(m.id))),
     [orderedModules]
   );
 
-  const edges = useMemo(
-    () =>
-      orderedModules.slice(0, -1).map((module, index) => ({
-        id: `edge-${module.id}-${orderedModules[index + 1].id}`,
-        source: String(module.id),
-        target: String(orderedModules[index + 1].id),
-        type: "smoothstep",
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          color: "#3b82f6",
-        },
-        style: { stroke: "#3b82f6", strokeWidth: 1.5 },
-      })),
-    [orderedModules]
-  );
+  const nodes = useMemo(() => {
+    if (orderedModules.length === 0) return [];
+
+    // Depth of each node = longest path from any root (no prerequisites).
+    const depthCache = new Map();
+
+    function getDepth(moduleId) {
+      if (depthCache.has(moduleId)) return depthCache.get(moduleId);
+
+      const directPrereqs = (prereqs.get(moduleId) ?? []).filter((pid) =>
+        moduleIdSet.has(pid)
+      );
+
+      let depth = 0;
+      for (const pid of directPrereqs) {
+        depth = Math.max(depth, getDepth(pid) + 1);
+      }
+
+      depthCache.set(moduleId, depth);
+      return depth;
+    }
+
+    // Group modules by depth level.
+    const byLevel = new Map();
+    for (const module of orderedModules) {
+      const level = getDepth(String(module.id));
+      const group = byLevel.get(level) ?? [];
+      group.push(module);
+      byLevel.set(level, group);
+    }
+
+    const result = [];
+
+    const HORIZONTAL_SPACING = 300;
+    const VERTICAL_SPACING = 260;
+
+    // Sort levels numerically so the graph renders top-to-bottom in order.
+    const sortedLevels = [...byLevel.keys()].sort((a, b) => a - b);
+
+    for (const level of sortedLevels) {
+      const group = byLevel.get(level);
+      const n = group.length;
+
+      // Center this level's siblings horizontally around x=0.
+      const xOffset = -((n - 1) * HORIZONTAL_SPACING) / 2;
+
+      group.forEach((module, idx) => {
+        result.push({
+          id: String(module.id),
+          type: "module",
+          position: {
+            x: xOffset + idx * HORIZONTAL_SPACING,
+            y: level * VERTICAL_SPACING,
+          },
+          data: {
+            title: module.title,
+            description: module.description,
+            subtitle: `Level ${level + 1}`,
+            color: ["blue", "cyan", "purple", "green"][level % 4],
+          },
+        });
+      });
+    }
+
+    return result;
+  }, [orderedModules, prereqs, moduleIdSet]);
+
+  const edges = useMemo(() => {
+    const result = [];
+    const seen = new Set();
+
+    for (const module of orderedModules) {
+      const moduleId = String(module.id);
+      const directPrereqs = (prereqs.get(moduleId) ?? []).filter((pid) =>
+        moduleIdSet.has(pid)
+      );
+
+      for (const prereqId of directPrereqs) {
+        const edgeId = `edge-${prereqId}-${moduleId}`;
+        if (seen.has(edgeId)) continue;
+        seen.add(edgeId);
+
+        result.push({
+          id: edgeId,
+          source: prereqId,
+          target: moduleId,
+          type: "smoothstep",
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: "#3b82f6",
+          },
+          style: { stroke: "#3b82f6", strokeWidth: 1.5 },
+        });
+      }
+    }
+
+    return result;
+  }, [orderedModules, prereqs, moduleIdSet]);
 
   const selectedModule = orderedModules.find(
     (module) => String(module.id) === String(selectedModuleId)
