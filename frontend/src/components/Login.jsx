@@ -1,18 +1,46 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3500/api";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
+    setError("");
+    setLoading(true);
 
-    // Connect to your backend authentication API later.
-    console.log({ email, password, rememberMe });
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Login failed");
+      }
+
+      if (data.user?.id) {
+        localStorage.setItem("userId", data.user.id);
+      }
+
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err.message || "An unexpected error occurred.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -105,12 +133,19 @@ export default function Login() {
             </Link>
           </div>
 
+          {error && (
+            <p className="text-sm text-red-400 text-center bg-red-500/10 px-3 py-2 rounded-lg border border-red-500/20">
+              {error}
+            </p>
+          )}
+
           {/* Login button */}
           <button
             type="submit"
-            className="w-full rounded-[18px] bg-gradient-to-r from-blue-600 to-blue-500 py-4 text-lg font-semibold transition hover:from-blue-500 hover:to-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-[#0a1425] active:scale-[0.99]"
+            disabled={loading}
+            className={`w-full rounded-[18px] bg-gradient-to-r from-blue-600 to-blue-500 py-4 text-lg font-semibold transition hover:from-blue-500 hover:to-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-[#0a1425] active:scale-[0.99] ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
           >
-            Log In
+            {loading ? "Logging in..." : "Log In"}
           </button>
         </form>
 
