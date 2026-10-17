@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ReactFlow,
   Background,
@@ -9,437 +9,36 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import LearningActivity from "./LearningActivity";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3500/api";
 
-// --------------------------------------------------
-// OOP CONCEPT DATA
-// --------------------------------------------------
+const COLORS = {
+  blue: {
+    border: "border-blue-400/60",
+    label: "text-blue-300",
+  },
+  cyan: {
+    border: "border-cyan-400/60",
+    label: "text-cyan-300",
+  },
+  purple: {
+    border: "border-purple-400/60",
+    label: "text-purple-300",
+  },
+  green: {
+    border: "border-emerald-400/60",
+    label: "text-emerald-300",
+  },
+};
 
-const conceptNodes = [
-  {
-    id: "fundamentals",
-    position: { x: 420, y: 20 },
-    data: {
-      title: "OOP Fundamentals",
-      subtitle: "Start Here",
-      color: "blue",
-      overview:
-        "Understand the basic principles of Object-Oriented Programming and how Java represents real-world entities.",
-      subtopics: [
-        "What is Object-Oriented Programming?",
-        "Classes and Objects",
-        "State and Behaviour",
-        "Advantages of OOP",
-      ],
-      prerequisites: ["Basic Java syntax"],
-      next: ["Classes & Objects", "Methods"],
-    },
-  },
-  {
-    id: "classes",
-    position: { x: 140, y: 170 },
-    data: {
-      title: "Classes & Objects",
-      subtitle: "Core Concept",
-      color: "cyan",
-      overview:
-        "Learn how classes act as blueprints and how objects represent individual instances of those classes.",
-      subtopics: [
-        "Defining a class",
-        "Creating objects",
-        "Instance variables",
-        "Object references",
-      ],
-      prerequisites: ["OOP Fundamentals"],
-      next: ["Constructors", "Encapsulation"],
-    },
-  },
-  {
-    id: "methods",
-    position: { x: 700, y: 170 },
-    data: {
-      title: "Methods",
-      subtitle: "Core Concept",
-      color: "cyan",
-      overview:
-        "Methods define the operations an object can perform. Learn how to declare, call, and use methods in Java.",
-      subtopics: [
-        "Method declaration",
-        "Parameters and return values",
-        "Method calling",
-        "Method overloading",
-      ],
-      prerequisites: ["OOP Fundamentals"],
-      next: ["Method Overloading", "Access Modifiers"],
-    },
-  },
-  {
-    id: "constructors",
-    position: { x: 20, y: 340 },
-    data: {
-      title: "Constructors",
-      subtitle: "Object Creation",
-      color: "purple",
-      overview:
-        "Constructors initialize new objects and help establish their initial state.",
-      subtopics: [
-        "Default constructors",
-        "Parameterized constructors",
-        "Constructor overloading",
-        "Constructor chaining",
-      ],
-      prerequisites: ["Classes & Objects"],
-      next: ["Inheritance"],
-    },
-  },
-  {
-    id: "encapsulation",
-    position: { x: 260, y: 340 },
-    data: {
-      title: "Encapsulation",
-      subtitle: "Data Protection",
-      color: "purple",
-      overview:
-        "Encapsulation combines data and methods while controlling access to an object's internal state.",
-      subtopics: [
-        "Data hiding",
-        "Private fields",
-        "Getters and setters",
-        "Access control",
-      ],
-      prerequisites: ["Classes & Objects"],
-      next: ["Inheritance"],
-    },
-  },
-  {
-    id: "overloading",
-    position: { x: 560, y: 340 },
-    data: {
-      title: "Method Overloading",
-      subtitle: "Compile-Time",
-      color: "purple",
-      overview:
-        "Method overloading allows multiple methods to share a name while having different parameter lists.",
-      subtopics: [
-        "Different parameter counts",
-        "Different parameter types",
-        "Compile-time polymorphism",
-        "Overloading examples",
-      ],
-      prerequisites: ["Methods"],
-      next: ["Inheritance"],
-    },
-  },
-  {
-    id: "access",
-    position: { x: 800, y: 340 },
-    data: {
-      title: "Access Modifiers",
-      subtitle: "Visibility",
-      color: "purple",
-      overview:
-        "Access modifiers control where classes, methods, and variables can be accessed.",
-      subtopics: [
-        "public",
-        "private",
-        "protected",
-        "Default access",
-      ],
-      prerequisites: ["Classes & Objects", "Methods"],
-      next: ["Inheritance"],
-    },
-  },
-  {
-    id: "inheritance",
-    position: { x: 420, y: 510 },
-    data: {
-      title: "Inheritance",
-      subtitle: "Reusability",
-      color: "blue",
-      overview:
-        "Inheritance allows a class to acquire accessible members from another class, supporting code reuse and class hierarchies.",
-      subtopics: [
-        "Parent and child classes",
-        "extends keyword",
-        "Types of inheritance",
-        "super keyword",
-      ],
-      prerequisites: [
-        "Classes & Objects",
-        "Constructors",
-        "Encapsulation",
-      ],
-      next: ["Method Overriding", "this & super"],
-    },
-  },
-  {
-    id: "overriding",
-    position: { x: 220, y: 680 },
-    data: {
-      title: "Method Overriding",
-      subtitle: "Runtime Behaviour",
-      color: "purple",
-      overview:
-        "Method overriding lets a subclass provide its own implementation of an inherited method.",
-      subtopics: [
-        "Overriding rules",
-        "@Override annotation",
-        "Runtime method dispatch",
-        "Overloading vs overriding",
-      ],
-      prerequisites: ["Inheritance"],
-      next: ["Polymorphism"],
-    },
-  },
-  {
-    id: "this-super",
-    position: { x: 620, y: 680 },
-    data: {
-      title: "this & super",
-      subtitle: "Java Keywords",
-      color: "purple",
-      overview:
-        "Learn how this refers to the current object and super accesses superclass members or constructors.",
-      subtopics: [
-        "this keyword",
-        "super keyword",
-        "Constructor chaining",
-        "Calling superclass methods",
-      ],
-      prerequisites: ["Classes & Objects", "Inheritance"],
-      next: ["Polymorphism"],
-    },
-  },
-  {
-    id: "polymorphism",
-    position: { x: 420, y: 850 },
-    data: {
-      title: "Polymorphism",
-      subtitle: "Many Forms",
-      color: "blue",
-      overview:
-        "Polymorphism allows the same interface or method call to produce different behaviours depending on the object or context.",
-      subtopics: [
-        "Compile-time polymorphism",
-        "Runtime polymorphism",
-        "Method overloading",
-        "Method overriding",
-      ],
-      prerequisites: ["Inheritance", "Method Overriding"],
-      next: ["Abstraction", "Interfaces"],
-    },
-  },
-  {
-    id: "abstraction",
-    position: { x: 220, y: 1020 },
-    data: {
-      title: "Abstraction",
-      subtitle: "Hide Complexity",
-      color: "purple",
-      overview:
-        "Abstraction exposes essential functionality while hiding unnecessary implementation details.",
-      subtopics: [
-        "Abstract classes",
-        "Abstract methods",
-        "The abstract keyword",
-        "When to use abstraction",
-      ],
-      prerequisites: ["Polymorphism"],
-      next: ["Advanced OOP"],
-    },
-  },
-  {
-    id: "interface",
-    position: { x: 620, y: 1020 },
-    data: {
-      title: "Interfaces",
-      subtitle: "Contracts",
-      color: "purple",
-      overview:
-        "Interfaces define contracts that implementing classes agree to fulfil.",
-      subtopics: [
-        "Declaring interfaces",
-        "implements keyword",
-        "Multiple interfaces",
-        "Default and static methods",
-      ],
-      prerequisites: ["Classes & Objects", "Polymorphism"],
-      next: ["Advanced OOP"],
-    },
-  },
-  {
-    id: "advanced",
-    position: { x: 420, y: 1190 },
-    data: {
-      title: "Advanced OOP",
-      subtitle: "Level Up",
-      color: "green",
-      overview:
-        "Bring your OOP knowledge together with more advanced Java concepts and practical design techniques.",
-      subtopics: [
-        "Composition and aggregation",
-        "Association",
-        "SOLID principles",
-        "Design patterns introduction",
-      ],
-      prerequisites: ["Abstraction", "Interfaces"],
-      next: ["Practice Problems", "Java OOP Projects"],
-    },
-  },
-];
-
-// --------------------------------------------------
-// GRAPH CONNECTIONS
-// --------------------------------------------------
-
-const conceptEdges = [
-  {
-    id: "e1",
-    source: "fundamentals",
-    target: "classes",
-  },
-  {
-    id: "e2",
-    source: "fundamentals",
-    target: "methods",
-  },
-  {
-    id: "e3",
-    source: "classes",
-    target: "constructors",
-  },
-  {
-    id: "e4",
-    source: "classes",
-    target: "encapsulation",
-  },
-  {
-    id: "e5",
-    source: "methods",
-    target: "overloading",
-  },
-  {
-    id: "e6",
-    source: "methods",
-    target: "access",
-  },
-  {
-    id: "e7",
-    source: "constructors",
-    target: "inheritance",
-  },
-  {
-    id: "e8",
-    source: "encapsulation",
-    target: "inheritance",
-  },
-  {
-    id: "e9",
-    source: "overloading",
-    target: "inheritance",
-  },
-  {
-    id: "e10",
-    source: "access",
-    target: "inheritance",
-  },
-  {
-    id: "e11",
-    source: "inheritance",
-    target: "overriding",
-  },
-  {
-    id: "e12",
-    source: "inheritance",
-    target: "this-super",
-  },
-  {
-    id: "e13",
-    source: "overriding",
-    target: "polymorphism",
-  },
-  {
-    id: "e14",
-    source: "this-super",
-    target: "polymorphism",
-  },
-  {
-    id: "e15",
-    source: "polymorphism",
-    target: "abstraction",
-  },
-  {
-    id: "e16",
-    source: "polymorphism",
-    target: "interface",
-  },
-  {
-    id: "e17",
-    source: "abstraction",
-    target: "advanced",
-  },
-  {
-    id: "e18",
-    source: "interface",
-    target: "advanced",
-  },
-].map((edge) => ({
-  ...edge,
-  type: "smoothstep",
-  animated: false,
-  style: {
-    stroke: "#3b82f6",
-    strokeWidth: 1.5,
-  },
-  markerEnd: {
-    type: MarkerType.ArrowClosed,
-    color: "#3b82f6",
-    width: 16,
-    height: 16,
-  },
-}));
-
-// --------------------------------------------------
-// CUSTOM GRAPH NODE
-// --------------------------------------------------
-
-function ConceptNode({ data, selected }) {
-  const colors = {
-    blue: {
-      border: "border-blue-400/60",
-      glow: "shadow-blue-500/10",
-      label: "text-blue-300",
-    },
-    cyan: {
-      border: "border-cyan-400/60",
-      glow: "shadow-cyan-500/10",
-      label: "text-cyan-300",
-    },
-    purple: {
-      border: "border-purple-400/60",
-      glow: "shadow-purple-500/10",
-      label: "text-purple-300",
-    },
-    green: {
-      border: "border-emerald-400/60",
-      glow: "shadow-emerald-500/10",
-      label: "text-emerald-300",
-    },
-  };
-
-  const theme = colors[data.color] || colors.blue;
+function ModuleNode({ data, selected }) {
+  const theme = COLORS[data.color] || COLORS.blue;
 
   return (
     <div
-      className={`
-        relative min-w-[205px] rounded-2xl border
-        ${theme.border}
-        ${theme.glow}
-        bg-[#101b32] px-5 py-4
-        shadow-xl transition-all duration-200
-        ${selected ? "ring-2 ring-blue-400 shadow-blue-500/20" : ""}
-        hover:-translate-y-0.5 hover:bg-[#15233d]
-      `}
+      className={`min-w-[260px] max-w-[300px] rounded-2xl border ${theme.border} ${
+        selected ? "ring-2 ring-blue-400" : ""
+      } bg-[#101b32] px-5 py-4 shadow-xl transition hover:bg-[#15233d]`}
     >
       <Handle
         type="target"
@@ -447,17 +46,19 @@ function ConceptNode({ data, selected }) {
         className="!h-2 !w-2 !border-2 !border-blue-300 !bg-[#0b1220]"
       />
 
-      <div className={`mb-2 text-[10px] font-bold uppercase tracking-[0.18em] ${theme.label}`}>
+      <p
+        className={`mb-2 text-[10px] font-bold uppercase tracking-[0.18em] ${theme.label}`}
+      >
         {data.subtitle}
-      </div>
+      </p>
 
-      <div className="text-sm font-bold text-white">
-        {data.title}
-      </div>
+      <h3 className="text-sm font-bold text-white">{data.title}</h3>
 
-      <div className="mt-2 text-[11px] text-slate-400">
-        Click to explore
-      </div>
+      <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-400">
+        {data.description || "Explore this learning module."}
+      </p>
+
+      <p className="mt-3 text-[11px] text-slate-500">Click to view details</p>
 
       <Handle
         type="source"
@@ -468,217 +69,297 @@ function ConceptNode({ data, selected }) {
   );
 }
 
-const nodeTypes = {
-  concept: ConceptNode,
-};
+const nodeTypes = { module: ModuleNode };
 
-// --------------------------------------------------
-// COURSE CARD
-// --------------------------------------------------
-
-function CourseCard({ onOpen }) {
+function CourseCard({ onOpen, loading }) {
   return (
-    <div className="mx-auto max-w-5xl">
-      <div className="relative overflow-hidden rounded-3xl border border-blue-400/20 bg-[#101b32] p-8 md:p-10">
-        <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl" />
+    <div className="mx-auto max-w-5xl rounded-3xl border border-blue-400/20 bg-[#101b32] p-8 md:p-10">
+      <span className="rounded-full border border-blue-400/30 bg-blue-400/10 px-3 py-1 text-xs font-semibold text-blue-300">
+        C++
+      </span>
 
-        <div className="relative z-10">
-          <div className="mb-5 flex flex-wrap items-center gap-3">
-            <span className="rounded-full border border-blue-400/30 bg-blue-400/10 px-3 py-1 text-xs font-semibold text-blue-300">
-              JAVA
-            </span>
+      <h2 className="mt-5 text-3xl font-bold text-white md:text-4xl">
+        Object-Oriented Programming
+      </h2>
 
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-400">
-              Beginner to Advanced
-            </span>
-          </div>
-
-          <h2 className="text-3xl font-bold tracking-tight text-white md:text-4xl">
-            Object-Oriented Programming
-          </h2>
-
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-400 md:text-base">
-            Master Java OOP through an interactive concept roadmap.
-            Explore topics, understand prerequisites, and open learning
-            activities for each concept.
-          </p>
-
-          <div className="mt-7 grid grid-cols-2 gap-4 md:grid-cols-4">
-            {[
-              ["14", "Concept nodes"],
-              ["4", "Core OOP pillars"],
-              ["Interactive", "Learning roadmap"],
-              ["Java", "Programming language"],
-            ].map(([value, label]) => (
-              <div
-                key={label}
-                className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"
-              >
-                <div className="text-lg font-bold text-white">
-                  {value}
-                </div>
-
-                <div className="mt-1 text-xs text-slate-500">
-                  {label}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <button
-            type="button"
-            onClick={onOpen}
-            className="mt-8 rounded-xl bg-blue-500 px-6 py-3.5 text-sm font-bold text-white transition hover:bg-blue-400"
-          >
-            Open Concept Roadmap →
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --------------------------------------------------
-// NODE DETAILS PANEL
-// --------------------------------------------------
-
-function NodeDetails({ node, onClose, onExplore }) {
-  if (!node) return null;
-
-  const { title, subtitle, overview, subtopics, prerequisites, next } =
-    node.data;
-
-  return (
-    <div className="absolute right-4 top-4 z-20 flex max-h-[calc(100%-32px)] w-[min(360px,calc(100%-32px))] flex-col overflow-y-auto rounded-2xl border border-white/10 bg-[#101b32]/[0.98] p-5 shadow-2xl backdrop-blur-xl">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-300">
-            {subtitle}
-          </span>
-
-          <h3 className="mt-2 text-xl font-bold text-white">
-            {title}
-          </h3>
-        </div>
-
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close concept details"
-          className="rounded-lg border border-white/10 px-3 py-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white"
-        >
-          ✕
-        </button>
-      </div>
-
-      <p className="mt-4 text-sm leading-6 text-slate-400">
-        {overview}
+      <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-400">
+        Explore your course modules and follow the learning path.
       </p>
-
-      <div className="mt-6">
-        <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-300">
-          What you will learn
-        </h4>
-
-        <div className="space-y-2">
-          {subtopics.map((topic, index) => (
-            <div
-              key={topic}
-              className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.03] p-3"
-            >
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-500/15 text-xs font-bold text-blue-300">
-                {index + 1}
-              </span>
-
-              <span className="pt-1 text-sm text-slate-300">
-                {topic}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-6">
-        <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-300">
-          Prerequisites
-        </h4>
-
-        <div className="flex flex-wrap gap-2">
-          {prerequisites.map((item) => (
-            <span
-              key={item}
-              className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-400"
-            >
-              {item}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-6">
-        <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-300">
-          Up next
-        </h4>
-
-        <div className="flex flex-wrap gap-2">
-          {next.map((item) => (
-            <span
-              key={item}
-              className="rounded-lg border border-blue-400/20 bg-blue-400/10 px-3 py-1.5 text-xs text-blue-300"
-            >
-              {item}
-            </span>
-          ))}
-        </div>
-      </div>
 
       <button
         type="button"
-        onClick={onExplore}
-        className="mt-7 w-full rounded-xl bg-blue-500 px-4 py-3.5 text-sm font-bold text-white transition hover:bg-blue-400"
+        onClick={onOpen}
+        disabled={loading}
+        className="mt-8 rounded-xl bg-blue-500 px-6 py-3.5 text-sm font-bold text-white transition hover:bg-blue-400 disabled:cursor-wait disabled:opacity-60"
       >
-        Explore Learning Activity →
+        {loading ? "Loading modules..." : "Open Concept Roadmap →"}
       </button>
     </div>
   );
 }
 
-// --------------------------------------------------
-// MAIN COURSE ROADMAP
-// --------------------------------------------------
+function ModuleDetails({ module, onClose, activities, activitiesLoading, activitiesError, onRetryActivities, onSelectActivity }) {
+  if (!module) return null;
 
-export default function CourseRoadmap({ initialOpen = false }) {
-  const [roadmapOpen, setRoadmapOpen] = useState(initialOpen);
-  const [selectedNodeId, setSelectedNodeId] = useState(null);
-  const [showLearningActivity, setShowLearningActivity] = useState(false);
+  const learnActivities = activities.filter((activity) => String(activity.type).toLowerCase() === "learn");
+  const testActivities = activities.filter((activity) => String(activity.type).toLowerCase() === "test");
+  const otherActivities = activities.filter((activity) => !["learn", "test"].includes(String(activity.type).toLowerCase()));
 
-  const selectedNode = conceptNodes.find(
-    (node) => node.id === selectedNodeId
+  const renderActivity = (activity) => (
+    <button
+  key={activity.id}
+  type="button"
+  onClick={() => onSelectActivity(activity)}
+  className="flex w-full items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-left transition hover:border-blue-400/40 hover:bg-blue-400/5"
+>
+  <span className="min-w-0">
+    <span className="block text-sm font-medium text-slate-100">
+      {activity.title || "Untitled activity"}
+    </span>
+    <span className="mt-1 block text-xs capitalize text-slate-500">
+      Status: {(activity.status || "not_started").replaceAll("_", " ")}
+    </span>
+  </span>
+  <span className="shrink-0 text-xs font-semibold text-blue-300">
+    Open →
+  </span>
+</button>
   );
 
-  const flowNodes = conceptNodes.map((node) => ({
-    ...node,
-    type: "concept",
-  }));
+  return (
+    <aside className="absolute right-4 top-4 z-10 max-h-[calc(100%-32px)] w-[min(360px,calc(100%-32px))] overflow-y-auto rounded-2xl border border-white/10 bg-[#101b32] p-5 shadow-2xl">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-blue-300">
+            Course module
+          </p>
+          <h3 className="mt-2 text-xl font-bold text-white">{module.title}</h3>
+        </div>
 
-  // Open the learning activity selected by the user.
-  if (showLearningActivity) {
-    return (
-      <LearningActivity
-        onBack={() => setShowLearningActivity(false)}
-      />
-    );
-  }
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close module details"
+          className="rounded-lg border border-white/10 px-3 py-1.5 text-slate-400 hover:bg-white/10"
+        >
+          ✕
+        </button>
+      </div>
 
-  // Show the course introduction first.
+      <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-400">
+        {module.description || "No description is available for this module."}
+      </p>
+
+      <p className="mt-4 text-xs text-slate-500">
+        Level {module.position ?? "—"}
+      </p>
+
+      <div className="mt-6 border-t border-white/10 pt-5">
+        <h4 className="text-sm font-semibold text-white">Learning activities</h4>
+        {activitiesLoading ? (
+          <p className="mt-3 text-sm text-slate-400">Loading activities...</p>
+        ) : activitiesError ? (
+          <div className="mt-3">
+            <p role="alert" className="text-sm text-red-300">{activitiesError}</p>
+            <button type="button" onClick={onRetryActivities} className="mt-2 text-sm font-semibold text-blue-300 hover:text-blue-200">Try again</button>
+          </div>
+        ) : activities.length === 0 ? (
+          <p className="mt-3 text-sm text-slate-400">No activities found for this module.</p>
+        ) : (
+          <div className="mt-4 space-y-5">
+            {learnActivities.length > 0 && <section><p className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-300">Learn</p><div className="space-y-2">{learnActivities.map(renderActivity)}</div></section>}
+            {testActivities.length > 0 && <section><p className="mb-2 text-xs font-bold uppercase tracking-wider text-amber-300">Test</p><div className="space-y-2">{testActivities.map(renderActivity)}</div></section>}
+            {otherActivities.length > 0 && <section><p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-300">Other</p><div className="space-y-2">{otherActivities.map(renderActivity)}</div></section>}
+          </div>
+        )}
+      </div>
+    </aside>
+  );
+}
+
+export default function CourseRoadmap({
+  courseId,
+  initialOpen = false,
+  onBack,
+}) {
+  const [roadmapOpen, setRoadmapOpen] = useState(initialOpen);
+  const [modules, setModules] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [selectedModuleId, setSelectedModuleId] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [activities, setActivities] = useState([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
+  const [activitiesError, setActivitiesError] = useState("");
+  const [activitiesReloadKey, setActivitiesReloadKey] = useState(0);
+  const [selectedActivity, setSelectedActivity] = useState(null);
+
+  useEffect(() => {
+    setRoadmapOpen(initialOpen);
+  }, [initialOpen]);
+
+  useEffect(() => {
+    if (!roadmapOpen || !courseId) return;
+
+    const controller = new AbortController();
+
+    async function loadModules() {
+      try {
+        setLoading(true);
+        setError("");
+
+        // This endpoint is expected to return the modules belonging to courseId.
+        const response = await fetch(
+          `${API_BASE_URL}/modules/course/${encodeURIComponent(courseId)}`,
+          { signal: controller.signal }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch modules (HTTP ${response.status})`);
+        }
+
+        const result = await response.json();
+
+        // Supports a direct array, { modules: [...] }, or { data: [...] }.
+        const fetchedModules = Array.isArray(result)
+          ? result
+          : Array.isArray(result.modules)
+            ? result.modules
+            : Array.isArray(result.data)
+              ? result.data
+              : [];
+
+        setModules(
+          [...fetchedModules].sort(
+            (a, b) => Number(a.position ?? 0) - Number(b.position ?? 0)
+          )
+        );
+      } catch (err) {
+        if (err.name !== "AbortError") {
+          setError(err.message || "Unable to load modules.");
+          console.error("Module loading error:", err);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadModules();
+
+    return () => controller.abort();
+  }, [courseId, roadmapOpen, reloadKey]);
+
+  useEffect(() => {
+    if (!selectedModuleId) {
+      setActivities([]);
+      setActivitiesError("");
+      setActivitiesLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function loadActivities() {
+      try {
+        setActivitiesLoading(true);
+        setActivitiesError("");
+        setActivities([]);
+
+        const response = await fetch(
+          `${API_BASE_URL}/activities/module/${encodeURIComponent(selectedModuleId)}`,
+          { signal: controller.signal }
+        );
+        if (!response.ok) {
+          throw new Error(`Failed to fetch activities (HTTP ${response.status})`);
+        }
+
+        const result = await response.json();
+        const list = Array.isArray(result)
+          ? result
+          : Array.isArray(result.activities)
+            ? result.activities
+            : Array.isArray(result.data)
+              ? result.data
+              : [];
+
+        if (!controller.signal.aborted) {
+          setActivities([...list].sort((a, b) => Number(a.position ?? 0) - Number(b.position ?? 0)));
+        }
+      } catch (err) {
+        if (err.name !== "AbortError" && !controller.signal.aborted) {
+          setActivitiesError(err.message || "Unable to load activities.");
+          console.error("Activity loading error:", err);
+        }
+      } finally {
+        if (!controller.signal.aborted) setActivitiesLoading(false);
+      }
+    }
+
+    void loadActivities();
+    return () => controller.abort();
+  }, [selectedModuleId, activitiesReloadKey]);
+
+  const orderedModules = useMemo(
+    () =>
+      [...modules].sort(
+        (a, b) => Number(a.position ?? 0) - Number(b.position ?? 0)
+      ),
+    [modules]
+  );
+
+  const nodes = useMemo(
+    () =>
+      orderedModules.map((module, index) => ({
+        id: String(module.id),
+        type: "module",
+        position: {
+          x: 0,
+          y: index * 240,
+        },
+        data: {
+          title: module.title,
+          description: module.description,
+          subtitle: `Level ${index + 1}`,
+          color: ["blue", "cyan", "purple", "green"][index % 4],
+        },
+      })),
+    [orderedModules]
+  );
+
+  const edges = useMemo(
+    () =>
+      orderedModules.slice(0, -1).map((module, index) => ({
+        id: `edge-${module.id}-${orderedModules[index + 1].id}`,
+        source: String(module.id),
+        target: String(orderedModules[index + 1].id),
+        type: "smoothstep",
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: "#3b82f6",
+        },
+        style: { stroke: "#3b82f6", strokeWidth: 1.5 },
+      })),
+    [orderedModules]
+  );
+
+  const selectedModule = orderedModules.find(
+    (module) => String(module.id) === String(selectedModuleId)
+  );
+
+  const openRoadmap = useCallback(() => {
+    setRoadmapOpen(true);
+  }, []);
+
   if (!roadmapOpen) {
     return (
-      <div className="min-h-[75vh] bg-[#0b1220] px-4 py-8 text-white md:px-8">
+      <main className="min-h-[75vh] bg-[#0b1220] px-4 py-8 text-white md:px-8">
         <div className="mx-auto mb-8 max-w-5xl">
           <button
             type="button"
-            onClick={() => window.history.back()}
-            className="mb-6 text-sm text-slate-400 transition hover:text-white"
+            onClick={onBack || (() => window.history.back())}
+            className="mb-6 text-sm text-slate-400 hover:text-white"
           >
             ← Back
           </button>
@@ -686,153 +367,135 @@ export default function CourseRoadmap({ initialOpen = false }) {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-400">
             Your learning path
           </p>
-
           <h1 className="mt-3 text-3xl font-bold md:text-4xl">
             Choose a course
           </h1>
-
           <p className="mt-3 text-sm text-slate-400">
-            Select a course to explore its concepts and learning activities.
+            Open the course to load its modules from the database.
           </p>
         </div>
 
-        <CourseCard onOpen={() => setRoadmapOpen(true)} />
-      </div>
+        <CourseCard onOpen={openRoadmap} loading={loading} />
+      </main>
     );
   }
 
-  // Display the interactive concept graph.
   return (
-    <div className="min-h-screen bg-[#0b1220] px-4 py-6 text-white md:px-8">
+    <main className="min-h-screen bg-[#0b1220] px-4 py-6 text-white md:px-8">
       <div className="mx-auto max-w-[1500px]">
         <button
           type="button"
           onClick={() => {
             setRoadmapOpen(false);
-            setSelectedNodeId(null);
+            setSelectedModuleId(null);
+            if (onBack) onBack();
           }}
-          className="mb-5 text-sm text-slate-400 transition hover:text-white"
+          className="mb-5 text-sm text-slate-400 hover:text-white"
         >
           ← Back to Courses
         </button>
 
-        <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-400">
-              JAVA · LEARNING ROADMAP
-            </div>
-
-            <h1 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">
-              Object-Oriented Programming
-            </h1>
-
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
-              Follow the connections between concepts. Click any node to
-              view its learning objectives, prerequisites, and next topics.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-3 text-xs text-slate-400">
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
-              <span className="font-bold text-white">14</span>
-              <span className="ml-2">Concepts</span>
-            </div>
-
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
-              <span className="font-bold text-white">Java</span>
-              <span className="ml-2">Course</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="mb-4 flex flex-wrap items-center gap-4 text-xs text-slate-400">
-          <span className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-blue-400" />
-            Core concepts
-          </span>
-
-          <span className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-purple-400" />
-            Supporting concepts
-          </span>
-
-          <span className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-            Advanced concepts
-          </span>
-
-          <span className="ml-auto">
-            Scroll to zoom · Drag to navigate
-          </span>
-        </div>
-
-        <div
-          className="relative h-[760px] overflow-hidden rounded-2xl border border-white/10 bg-[#0e1729]"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 50% 0%, rgba(59,130,246,0.08), transparent 45%)",
-          }}
-        >
-          <ReactFlow
-            nodes={flowNodes}
-            edges={conceptEdges}
-            nodeTypes={nodeTypes}
-            onNodeClick={(_, node) => setSelectedNodeId(node.id)}
-            onPaneClick={() => setSelectedNodeId(null)}
-            fitView
-            fitViewOptions={{
-              padding: 0.2,
-              minZoom: 0.35,
-              maxZoom: 1,
-            }}
-            minZoom={0.2}
-            maxZoom={1.5}
-            nodesDraggable={false}
-            nodesConnectable={false}
-            elementsSelectable
-            proOptions={{ hideAttribution: true }}
-            defaultEdgeOptions={{
-              type: "smoothstep",
-            }}
-          >
-            <Background
-              color="#263650"
-              gap={24}
-              size={1}
-            />
-
-            <Controls
-              showInteractive={false}
-              className="!overflow-hidden !rounded-xl !border !border-white/10 !bg-[#101b32] [&>button]:!border-white/10 [&>button]:!bg-[#101b32] [&>button]:!fill-slate-300 [&>button:hover]:!bg-[#1b2a45]"
-            />
-          </ReactFlow>
-
-          {selectedNode && (
-            <NodeDetails
-              node={selectedNode}
-              onClose={() => setSelectedNodeId(null)}
-              onExplore={() => setShowLearningActivity(true)}
-            />
-          )}
-        </div>
-
-        <div className="mt-4 flex flex-col justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 sm:flex-row sm:items-center">
-          <p className="text-xs leading-5 text-slate-500">
-            Tip: Start with OOP Fundamentals and progress through the
-            connected concepts.
+        <div className="mb-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-400">
+            C++ LEARNING ROADMAP
           </p>
-
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedNodeId("fundamentals");
-            }}
-            className="shrink-0 rounded-lg border border-blue-400/30 bg-blue-400/10 px-4 py-2.5 text-xs font-semibold text-blue-300 transition hover:bg-blue-400/20"
-          >
-            Start Learning →
-          </button>
+          <h1 className="mt-2 text-3xl font-bold md:text-4xl">
+            Object-Oriented Programming
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
+            Modules are fetched from your activities API and arranged level by
+            level. Select a node to view its details.
+          </p>
         </div>
+
+        {loading ? (
+          <div className="rounded-2xl border border-white/10 p-8 text-slate-300">
+            Loading course modules...
+          </div>
+        ) : error ? (
+          <div
+            role="alert"
+            className="rounded-2xl border border-red-400/30 bg-red-400/10 p-6 text-red-300"
+          >
+            <p className="font-semibold">Could not load modules</p>
+            <p className="mt-2 text-sm">{error}</p>
+            <button
+              type="button"
+              onClick={() => setReloadKey((key) => key + 1)}
+              className="mt-4 rounded-lg bg-red-400/10 px-4 py-2 text-sm hover:bg-red-400/20"
+            >
+              Try again
+            </button>
+          </div>
+        ) : !courseId ? (
+          <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-6 text-amber-200">
+            No course ID was provided. Pass a valid course ID to CourseRoadmap.
+          </div>
+        ) : orderedModules.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 p-8 text-slate-300">
+            No modules were returned for this course.
+          </div>
+        ) : (
+          <>
+            <p className="mb-4 text-xs text-slate-400">
+              {orderedModules.length} modules · Scroll to zoom · Drag to navigate
+            </p>
+
+            <div className="relative h-[760px] overflow-hidden rounded-2xl border border-white/10 bg-[#0e1729]">
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                nodeTypes={nodeTypes}
+                onNodeClick={(_, node) => {
+                  setSelectedModuleId(String(node.id));
+                  setSelectedActivity(null);
+                }}
+                onPaneClick={() => {
+                  setSelectedModuleId(null);
+                  setSelectedActivity(null);
+                }}
+                fitView
+                fitViewOptions={{ padding: 0.2 }}
+                minZoom={0.2}
+                maxZoom={1.5}
+                nodesDraggable={false}
+                nodesConnectable={false}
+                proOptions={{ hideAttribution: true }}
+              >
+                <Background color="#263650" gap={24} size={1} />
+                <Controls showInteractive={false} />
+              </ReactFlow>
+
+              <ModuleDetails
+                module={selectedModule}
+                onClose={() => {
+                  setSelectedModuleId(null);
+                  setSelectedActivity(null);
+                }}
+                activities={activities}
+                activitiesLoading={activitiesLoading}
+                activitiesError={activitiesError}
+                onRetryActivities={() => setActivitiesReloadKey((key) => key + 1)}
+                onSelectActivity={setSelectedActivity}
+              />
+
+              {selectedActivity && (
+                <div className="absolute bottom-4 left-4 z-20 w-[min(360px,calc(100%-32px))] rounded-2xl border border-blue-400/30 bg-[#101b32] p-5 shadow-2xl">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wider text-blue-300">{selectedActivity.type || "Activity"}</p>
+                      <h3 className="mt-2 text-lg font-bold text-white">{selectedActivity.title}</h3>
+                    </div>
+                    <button type="button" onClick={() => setSelectedActivity(null)} aria-label="Close activity details" className="rounded-lg border border-white/10 px-3 py-1.5 text-slate-400 hover:bg-white/10">✕</button>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-slate-400">This activity is loaded from your database. The next step is to connect its learning content or test questions.</p>
+                  <p className="mt-3 text-xs text-slate-500">Status: {(selectedActivity.status || "not_started").replaceAll("_", " ")}</p>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
-    </div>
+    </main>
   );
 }

@@ -234,7 +234,7 @@ function AboutPage({ onNavigate }) {
       icon: "◎",
       title: "Interactive roadmap",
       description:
-        "Explore Java OOP concepts visually and inspect prerequisites and related topics.",
+        "Explore C++ OOP concepts visually and inspect prerequisites and related topics.",
     },
     {
       icon: "✦",
@@ -331,7 +331,7 @@ function AboutPage({ onNavigate }) {
             {
               number: "01",
               title: "Choose a course",
-              description: "Start with a subject such as Java OOP.",
+              description: "Start with a subject such as C++ OOP.",
             },
             {
               number: "02",
@@ -775,7 +775,7 @@ export default function Dashboard() {
 
             <div className="min-w-0 flex-1">
               <span className="text-[10px] font-semibold tracking-[0.18em] text-blue-300">
-                JAVA · PROGRAMMING
+                C++ PROGRAMMING
               </span>
 
               <h3 className="mt-2 text-lg font-semibold text-white">
@@ -829,7 +829,7 @@ export default function Dashboard() {
 
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold tracking-widest text-blue-300">
-                  JAVA · COMPUTER SCIENCE
+                  C++ COMPUTER SCIENCE
                 </p>
 
                 <h3 className="mt-2 text-xl font-semibold text-white">
@@ -1044,7 +1044,9 @@ export default function Dashboard() {
         {activePage === "Home" ? (
           renderHome()
         ) : activePage === "Courses" ? (
-          <CourseRoadmap />
+          <CourseRoadmap
+            courseId="10000000-0000-4000-8000-000000000001"
+          />
         ) : (
           renderOtherPage()
         )}
